@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "vaultwarden",
+  "repo": "vaultwarden-stack-module",
+  "runtimeId": "vaultwarden",
+  "lifecycle": "active",
+  "dependencies": [
+    "stack-foundation"
+  ],
+  "overlays": [
+    "stack.compose/vaultwarden.yml",
+    "stack.config/vaultwarden",
+    "stack.containers/vaultwarden-maintenance"
+  ]
+}
