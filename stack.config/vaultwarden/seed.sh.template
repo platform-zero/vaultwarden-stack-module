@@ -76,13 +76,6 @@ ensure_org_invitations() {
 
     user_uuid_sql="$(sql_escape "$user_uuid")"
 
-    case "$user_mail" in
-      pl*@*|playwright-*|*@webservices.test)
-        echo "[vaultwarden-maintenance] leaving managed screenshot/test user $user_mail in personal-vault mode."
-        continue
-        ;;
-    esac
-
     existing_membership_uuid="$(sqlite_retry "SELECT uuid FROM users_organizations WHERE user_uuid = '$user_uuid_sql' AND org_uuid = '$ORG_UUID_SQL' LIMIT 1;" | head -n1)"
     if [ -n "$existing_membership_uuid" ]; then
       continue

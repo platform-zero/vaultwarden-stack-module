@@ -34,6 +34,7 @@ test('Vaultwarden - OIDC login flow', async ({ page }) => {
     const vaultwardenMasterPassword = process.env.VAULTWARDEN_TEST_MASTER_PASSWORD
       || `${testUser.username.replace(/[^A-Za-z0-9]/g, '') || 'playwright'}Vault!2026`;
     const vaultwardenAppUrl = serviceUrl('vaultwarden');
+    const vaultwardenProofUrl = serviceUrl('vaultwarden', '/#/settings/account');
     const vaultwardenSsoIdentifier = process.env.VAULTWARDEN_ORG_ID?.trim()
       || vaultwardenEmail.split('@').pop()
       || domain;
@@ -278,32 +279,33 @@ test('Vaultwarden - OIDC login flow', async ({ page }) => {
           };
 
           const submitVaultwardenOnboarding = async () => {
+            let submitted = false;
             const submitButton = page.getByRole('button', {
               name: /create account|save|continue|submit|finish|join/i,
             }).first();
             if (await submitButton.isVisible().catch(() => false)) {
               await submitButton.scrollIntoViewIfNeeded().catch(() => {});
-              await submitButton.click({ force: true }).catch(() => {});
+              submitted = await submitButton.click({ force: true }).then(() => true).catch(() => false);
             }
             const fallbackSubmit = page.locator('button[type="submit"]').first();
-            if (await fallbackSubmit.isVisible().catch(() => false)) {
-              await fallbackSubmit.click({ force: true }).catch(() => {});
+            if (!submitted && await fallbackSubmit.isVisible().catch(() => false)) {
+              submitted = await fallbackSubmit.click({ force: true }).then(() => true).catch(() => false);
             }
-            if (await confirmNewPasswordField.isVisible().catch(() => false)) {
-              await confirmNewPasswordField.press('Enter').catch(() => {});
-            } else if (await masterPasswordField.isVisible().catch(() => false)) {
-              await masterPasswordField.press('Enter').catch(() => {});
+            if (!submitted && await confirmNewPasswordField.isVisible().catch(() => false)) {
+              submitted = await confirmNewPasswordField.press('Enter').then(() => true).catch(() => false);
+            } else if (!submitted && await masterPasswordField.isVisible().catch(() => false)) {
+              submitted = await masterPasswordField.press('Enter').then(() => true).catch(() => false);
             }
             const onboardingForm = page.locator('form').first();
-            if (await onboardingForm.isVisible().catch(() => false)) {
-              await onboardingForm.evaluate((el) => {
+            if (!submitted && await onboardingForm.isVisible().catch(() => false)) {
+              submitted = await onboardingForm.evaluate((el) => {
                 const form = el as HTMLFormElement;
                 if (typeof form.requestSubmit === 'function') {
                   form.requestSubmit();
                 } else {
                   form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
                 }
-              }).catch(() => {});
+              }).then(() => true).catch(() => false);
             }
             await page.waitForTimeout(1500);
           };
@@ -417,16 +419,10 @@ test('Vaultwarden - OIDC login flow', async ({ page }) => {
 
             if (!onboardingCompleted) {
               const onboardingBody = (await page.textContent('body').catch(() => '')) || '';
-              const onAuthenticatedEnrollment =
-                /#\/set-initial-password\b/i.test(page.url())
-                && /Join organization|Set initial password|Create account/i.test(onboardingBody)
-                && !lastValidationErrors;
-              if (onAuthenticatedEnrollment) {
-                console.log('Vaultwarden OIDC reached authenticated app-local master-password enrollment; accepting SSO success.');
-                return;
-              }
               try {
                 await assertVaultwardenDisplayName(page);
+                await page.goto(vaultwardenProofUrl, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
+                await page.waitForTimeout(1500);
                 return;
               } catch {
                 throw new Error(
@@ -463,6 +459,8 @@ test('Vaultwarden - OIDC login flow', async ({ page }) => {
           }
 
           await assertVaultwardenDisplayName(page);
+          await page.goto(vaultwardenProofUrl, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
+          await page.waitForTimeout(1500);
         },
         oidcLinkPatterns: [/single sign-on/i, /sso/i],
       }
