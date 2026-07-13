@@ -18,6 +18,7 @@
   "overlays": [
     "stack.compose/vaultwarden.yml",
     "stack.config/vaultwarden",
+    "stack.containers/vaultwarden-maintenance/Dockerfile",
     "stack.containers/test-runner/playwright-tests/tests/deep/forward-auth/vault.spec.ts",
     "stack.containers/test-runner/playwright-tests/tests/deep/forward-auth/vaultwarden-boundary.spec.ts",
     "stack.containers/test-runner/playwright-tests/tests/deep/oidc/vaultwarden.spec.ts",
