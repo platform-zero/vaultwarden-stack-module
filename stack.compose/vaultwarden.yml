@@ -51,9 +51,7 @@ services:
       start_period: 60s
 
   vaultwarden-maintenance:
-    build:
-      context: ./stack.containers/vaultwarden-maintenance
-    image: stack/vaultwarden-maintenance:local-build
+    image: docker.io/keinos/sqlite3@sha256:b2e15958e72106116c0b17976ef704e6461663949d47cbbfb896c5c865407c57
     container_name: vaultwarden-maintenance
     restart: unless-stopped
     depends_on:
