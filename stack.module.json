@@ -16,7 +16,6 @@
   "smoke": "external-only",
   "smokeUnsupportedReason": "requires generated bundle context, deployed networking, secrets, or service dependencies",
   "overlays": [
-    "stack.compose/vaultwarden.yml",
     "stack.config/vaultwarden",
     "stack.containers/vaultwarden-maintenance/Dockerfile",
     "stack.containers/test-runner/playwright-tests/tests/deep/forward-auth/vault.spec.ts",

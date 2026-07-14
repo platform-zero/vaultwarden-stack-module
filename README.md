@@ -6,7 +6,7 @@
 - Lifecycle: `active`
 
 ## Owned overlays
-- `stack.compose/vaultwarden.yml`
+- `stack.runtime.yaml`
 - `stack.config/vaultwarden`
 - `stack.containers/vaultwarden-maintenance`
 
