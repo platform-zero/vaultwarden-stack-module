@@ -42,6 +42,8 @@ services:
       caddy: null
       postgres: null
       mailserver: null
+    extraHosts:
+    - "mail.${DOMAIN}:host-gateway"
     volumes:
     - "vaultwarden_data:/data"
     - "caddy_certs:/certs:ro"
