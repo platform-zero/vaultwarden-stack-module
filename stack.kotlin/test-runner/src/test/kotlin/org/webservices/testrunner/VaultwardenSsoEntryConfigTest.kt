@@ -23,12 +23,12 @@ class VaultwardenSsoEntryConfigTest {
 
     @Test
     fun `vaultwarden sso derives email from keycloak verified email claim`() {
-        val compose = repoFileText("stack.runtime.yaml")
+        val runtime = repoFileText("stack.runtime.yaml")
         val keycloakConfigure = repoFileText("stack.config/keycloak/configure-runtime.sh")
 
-        assertTrue(compose.contains("SSO_SCOPES: openid email profile"))
-        assertTrue(compose.contains("SSO_SIGNUPS_MATCH_EMAIL: true"))
-        assertTrue(compose.contains("SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION: false"))
+        assertTrue(runtime.contains("SSO_SCOPES: openid email profile"))
+        assertTrue(runtime.contains("SSO_SIGNUPS_MATCH_EMAIL: true"))
+        assertTrue(runtime.contains("SSO_ALLOW_UNKNOWN_EMAIL_VERIFICATION: false"))
         assertFalse(keycloakConfigure.contains("vaultwarden-email-verified"))
         assertFalse(keycloakConfigure.contains("\"email_verified\" \"true\""))
     }
