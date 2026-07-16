@@ -1,8 +1,11 @@
 package org.webservices.testrunner
 
-import java.nio.file.Files
-import java.nio.file.Path
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -10,21 +13,22 @@ class VaultwardenSsoEntryConfigTest {
 
     @Test
     fun `vaultwarden portal entry preselects internal sso organization`() {
-        val caddyfile = repoFileText("stack.config/caddy/Caddyfile")
-        val contracts = repoFileText("stack.config/service-contracts.json")
+        val caddyfile = TestSourceFiles.moduleText("vaultwarden", "stack.config/caddy/Caddyfile")
+        val vaultwarden = serviceContract("vaultwarden")
+        val portal = vaultwarden.getValue("portal").jsonObject
 
         assertTrue(caddyfile.contains("@vw_sso_login path /sso-login /sso-login/"))
         assertTrue(caddyfile.contains("import keycloak_auth vaultwarden"))
         assertTrue(caddyfile.contains("redir * \"/#/sso?identifier={\$VAULTWARDEN_ORG_ID}&email={http.request.header.Remote-Email}\" 302"))
-        assertTrue(contracts.contains("\"vaultwarden\""))
-        assertTrue(contracts.contains("\"hrefHost\": \"vaultwarden\""))
-        assertTrue(contracts.contains("\"path\": \"/sso-login\""))
+        assertTrue(portal.getValue("visible").jsonPrimitive.boolean)
+        assertEquals("vaultwarden", portal.getValue("hrefHost").jsonPrimitive.content)
+        assertEquals("/sso-login", portal.getValue("path").jsonPrimitive.content)
     }
 
     @Test
     fun `vaultwarden sso derives email from keycloak verified email claim`() {
-        val runtime = repoFileText("stack.runtime.yaml")
-        val keycloakConfigure = repoFileText("stack.config/keycloak/configure-runtime.sh")
+        val runtime = TestSourceFiles.moduleText("vaultwarden", "stack.runtime.yaml")
+        val keycloakConfigure = TestSourceFiles.moduleText("keycloak", "stack.config/keycloak/configure-runtime.sh")
 
         assertTrue(runtime.contains("SSO_SCOPES: openid email profile"))
         assertTrue(runtime.contains("SSO_SIGNUPS_MATCH_EMAIL: true"))
@@ -34,35 +38,37 @@ class VaultwardenSsoEntryConfigTest {
     }
 
     @Test
-    fun `embedding service is not exposed in portal visible config`() {
-        val contracts = repoFileText("stack.config/service-contracts.json")
-        val inferenceBlock = contracts.substringAfter("\"inference\"").substringBefore("\"search\"")
+    fun `rootless vaultwarden reaches rootful smtp using the certificate hostname`() {
+        val runtime = TestSourceFiles.moduleText("vaultwarden", "stack.runtime.yaml")
 
-        assertTrue(inferenceBlock.contains("\"visible\": false"))
-        assertFalse(inferenceBlock.contains("\"hrefHost\": \"models\""))
+        assertTrue(runtime.contains("SMTP_HOST: \"mail.\${DOMAIN}\""))
+        assertTrue(runtime.contains("- \"mail.\${DOMAIN}:host-gateway\""))
+    }
+
+    @Test
+    fun `embedding service is not exposed in portal visible config`() {
+        val inference = serviceContract("inference")
+        val portal = inference.getValue("portal").jsonObject
+
+        assertFalse(portal.getValue("visible").jsonPrimitive.boolean)
+        assertFalse("hrefHost" in portal)
     }
 
     @Test
     fun `portal exposes restored keycloak backed sogo web ui`() {
-        val contracts = repoFileText("stack.config/service-contracts.json")
-        val sogoBlock = contracts.substringAfter("\"sogo\"").substringBefore("\"vaultwarden\"")
+        val sogo = serviceContract("sogo")
+        val portal = sogo.getValue("portal").jsonObject
 
-        assertTrue(sogoBlock.contains("\"name\": \"SOGo\""))
-        assertTrue(sogoBlock.contains("\"hrefHost\": \"sogo\""))
-        assertTrue(sogoBlock.contains("\"description\": \"Mail, calendar, and contacts with deterministic evidence views.\""))
+        assertEquals("SOGo", sogo.getValue("name").jsonPrimitive.content)
+        assertTrue(portal.getValue("visible").jsonPrimitive.boolean)
+        assertEquals("sogo", portal.getValue("hrefHost").jsonPrimitive.content)
+        assertEquals(
+            "Mail, calendar, and contacts with deterministic evidence views.",
+            portal.getValue("description").jsonPrimitive.content,
+        )
     }
 
-    private fun repoFileText(relativePath: String): String =
-        Files.readString(repoRoot().resolve(relativePath))
-
-    private fun repoRoot(): Path {
-        var current = Path.of("").toAbsolutePath()
-        repeat(8) {
-            if (Files.exists(current.resolve("MODULE.bazel"))) {
-                return current
-            }
-            current = current.parent ?: return@repeat
-        }
-        error("Could not locate repository root from ${Path.of("").toAbsolutePath()}")
-    }
+    private fun serviceContract(id: String) = Json.parseToJsonElement(
+        TestSourceFiles.moduleText("stack-foundation", "stack.config/service-contracts.json"),
+    ).jsonObject.getValue("components").jsonObject.getValue(id).jsonObject
 }
