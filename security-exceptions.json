@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "exceptions": [
+    {
+      "rule": "container-root-default",
+      "path": "stack.containers/vaultwarden-maintenance/Containerfile",
+      "reason": "The maintenance image performs offline SQLite operations on the protected Vaultwarden data volume.",
+      "mitigations": [
+        "Maintenance runs are one-shot and do not expose a network service.",
+        "The image contains only Alpine and the SQLite client."
+      ]
+    }
+  ]
+}
