@@ -44,6 +44,7 @@ services:
       mailserver: null
     extraHosts:
     - "mail.${DOMAIN}:host-gateway"
+    - "keycloak.${DOMAIN}:host-gateway"
     volumes:
     - "vaultwarden_data:/data"
     - "caddy_certs:/certs:ro"
